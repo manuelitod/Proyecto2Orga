@@ -19,7 +19,7 @@ instrumentador_beq:
 	sra $t6, $t5, 26 # $t6 contiene el codigo de la instruccion.
 	beq $t6, 4, instrumentador_beqevaluarcaso # Verificamos si es un beq.
 	addi $t1, $t1, 4
-	bne $t5, 11, instrumentador_beq
+	bne $t5, 0x2402000a, instrumentador_beq
 	addi $t3, $t3, 1
 	b instrumentador_beq
 		
@@ -35,7 +35,7 @@ instrumentador_beqevaluarcaso:
 	addi $t1, $t1, -4
 	sub $t1, $t1, $t6
 	div $t6, $t6, 4 # Devuelvo el cambio para contar cuantos add's hay.
-	li $t7, 1 # $t7 ahora es un contador.
+	li $t7, 0 # $t7 ahora es un contador.
 	li $t9, 0 # Contador de adds.
 instrumentador_contaraddbeq:
 	lw $t5, 0($t1) # $t5 contiene el codigo de operacion de la instrucion $t1.
@@ -43,7 +43,7 @@ instrumentador_contaraddbeq:
 	and $t8, $t5, 0x0000003F
 	addi $t1, $t1, 4
 	addi $t7, $t7, 1
-	bne $t9, 32, instrumentador_contaraddbeq
+	bne $t8, 32, instrumentador_contaraddbeq
 	addi $t9, $t9, 1
 	b instrumentador_contaraddbeq
 instrumentador_modificarbeq:

@@ -23,6 +23,10 @@ m3:	.asciiz "p3\n"
 	.text
 
 p1:
+	add $v0, $v0, $t1
+	add $v0, $v0, $t1
+	add $v0, $v0, $t1
+	add $v0, $v0, $t1	
 	li $v0 4
 	la $a0 m1
 	syscall
