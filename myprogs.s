@@ -26,6 +26,7 @@ p1:
 	li $v0 4
 	la $a0 m1
 	syscall
+	beq $v0, $t1, p1
 	
 	b p1
 
