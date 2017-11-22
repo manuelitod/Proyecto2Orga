@@ -24,23 +24,36 @@ m3:	.asciiz "p3\n"
 
 p1:
 	add $v0, $v0, $t1
-	add $v0, $v0, $t1
-	add $v0, $v0, $t1
 	add $v0, $v0, $t1	
 	li $v0 4
 	la $a0 m1
+	add $v0, $v0, $t1
 	syscall
 	beq $v0, $t1, p1
 	
 	b p1
+	add $v0, $v0, $t1
 
 	li $v0, 10
         syscall
+        nop
+        nop
+        nop
+        nop
 
 p2:	
+
+	add $v0, $v0, $t1
 	li $v0 4
 	la $a0 m2
 	syscall
+	add $v0, $v0, $t1
+	add $v0, $v0, $t1
+	li $v0 4
+	add $v0, $v0, $t1	
+	la $a0 m1
+	syscall
+	beq $v0, $t1, p2
 	
 	b p2
 
@@ -48,6 +61,10 @@ p2:
 	
 	li $v0, 10
 	syscall
+	nop
+	nop
+	nop
+	nop
 	nop
 
 p3:	
