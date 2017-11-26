@@ -4,11 +4,13 @@ char:	.asciiz " \n"
 	.text
 	.globl main
 main:
+	lw $t1, key
 	jal getchar
 	la $a0, char
 	sb $v0, ($a0)
 	la $a0, key
 	jal print_string
+	
 	j main
 
 
