@@ -30,8 +30,9 @@ p1:
 	add $v0, $v0, $t1
 	syscall
 	beq $v0, $t1, p1
+	li $t9, 0
 	
-	b p1
+	beq $t9, 0, p1
 	add $v0, $v0, $t1
 
 	li $v0, 10
