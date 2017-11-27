@@ -250,7 +250,7 @@ inicializar_informacion:
 	sw $v0, informacion # Almacenamos la direccion de inicio del arreglo de informacion en la etiqueta "informacion".
 	
 inicializar_ambiente:
-	beq $t1, $t0,correr_programa  # Reviso si inicialice la informacion de todos los programas
+	beq $t1, $t0,fin  # Reviso si inicialice la informacion de todos los programas
 	lw $t2, informacion # Almacenamos en $t2 la direccion de inicio del arreglo de informacion
 	li $a0, 120 # Almacenamos en $a0 la cantidad de bytes que queremos reservar para la informacion del ambiente de cada
 		    # programa
@@ -266,7 +266,7 @@ inicializar_ambiente:
 				 # programa al que hace referencia.
 	addi $t2, $t2, 4 # Nos movemos a los segundos 4 bytes.
 	sw $v0, ($t2) # Almacenamos en los segundos 4 bytes de la posicion actual del arreglo la direccion del inicio
-				 # de malloc.
+		      # del espacio de memoria reservado.
 	addi $t2, $t2, 4 # Nos movemos a los terceros 4 bytes.
 	li $t5, 0 
 	sw $t5, ($t2) # Almacenamos en los terceros 4 bytes de la posicion actual del arreglo si el programa asociado
@@ -275,8 +275,6 @@ inicializar_ambiente:
 	sw $t5, ($t2) # Almacenamos en los cuartos 4 bytes la cantidad actual de adds ejecutados en el programa.		 
 	addi $t1, $t1, 1
 	b inicializar_ambiente
-	
-correr_programa:
 	
 fin:
 	li $v0 10
