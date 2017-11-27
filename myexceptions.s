@@ -84,13 +84,19 @@ s2:	.word 0
 
 	mfc0 $k0 $13		# Cause register
 	srl $a0 $k0 2		# Extract ExcCode Field
-	andi $a0 $a0 0x1f	
+	#move $a1, $a0
+	# srl $a1, $a1, 6
+	andi $a0 $a0 0x1f
+	# andi $a1, $a1, 0xff
+	# beqz $a1, interrupcion_teclado
+	beqz $a0, interrupcion_teclado	
 	bne $a0, 9, imprimir_error # Si la excepcion no se debe a un break se imprime el mensaje correspondiente.
 	lw $t5, ($k1)	# Almacenamos en $t5 el codigo de operacion del break.
 	andi $t5, 0x03ffffc0 # Revisamos cual es el codigo del break.
 	beq $t5, 1024, break_0x10 # Se filtra si el break es 0x10.
 	beq $t5, 2048, break_0x20 # Se filtra si el break es 0x20.
 	b imprimir_error # Si el break no es de los dos tipos antes mencionados se imprime el mensaje correspondiente.
+	
 break_0x20:
 	lw $t1, programa_actual # Se almacena en $t1 el numero del programa actual.
 	lw $t2, informacion # Se almacena en $t2 la direccion de inicio del arreglo de informacion.
@@ -102,8 +108,10 @@ break_0x20:
 	addi $t4, $t4, 1 # Aumentamos el contenido de $t4 en uno.
 	sw $t4, ($t2)
 	b ret
+	
 break_0x10:
 	lw $t1, programa_actual # Se almacena en $t1 el numero del programa actual.
+	lw $t5, NUM_PROGS
 	lw $t2, informacion # Se almacena en $t2 la direccion de inicio del arreglo de informacion.
 	li $t3, 0
 	mul $t3, $t1, 16
@@ -111,10 +119,79 @@ break_0x10:
 	addi $t2, $t2, 8 # Se almacena en $t2 la direccion donde se encuentra la informacion si finalizo o no el programa.
 	li $t4, 1
 	sw $t4, ($t2) # Se asigna 1 como contenido de $t2, que hace referencia a que el programa ya finalizo.
-	b ret
+	addi $t5, $t5, -1
+	addi $t1, $t1, 1
+	lw $t7, 0
+	
+break_0x10_revisanofinalizado:
+	sw $t1, programa_actual
+	bgt $t1, $t5, break_0x10_vuelta
+	lw $t2, informacion
+	move $t6, $t1
+	mul $t6, $t6, 16
+	add $t6, $t6, 8
+	lw $t6, ($t6)
+	addi $t1, $t1, 1
+	addi $t7, $t7, 1
+	beq $t7, $t5, fin
+	beq $t6, 1, break_0x10_revisanofinalizado
+	b cargar_ambiente
+	
+break_0x10_vuelta:
+	li $t1, 0 # Si el antiguo programa actual era el ultimo colocamos como programa actual el primero
+	b break_0x10_revisanofinalizado
 	
 	# Print information about exception.
 	#
+interrupcion_teclado: 
+	li $v0, 1
+	li $a0, 3
+	syscall
+	li $t1, 3
+	sw $t1, 0xffff0000
+	b ret
+guardar_ambiente:
+
+	b cargar_ambiente
+	
+cargar_ambiente:
+	lw $t1, programa_actual
+	mul $t1, $t1, 16
+	add $t1, $t2, $t1
+	move $k0, $t1
+	addi $t1, $t1, 4
+	lw $t1, ($t1)
+	lw $at, 0($t1)
+	lw $v0, 4($t1)
+	lw $v1, 8($t1)
+	lw $a0, 12($t1)
+	lw $a1, 16($t1)
+	lw $a2, 20($t1)
+	lw $a3, 24($t1)
+	lw $t0, 28($t1)
+	lw $t2, 36($t1)	
+	lw $t3, 40($t1)
+	lw $t4, 44($t1)
+	lw $t5, 48($t1)
+	lw $t6, 52($t1)
+	lw $t7, 56($t1)
+	lw $s0, 60($t1)
+	lw $s1, 64($t1)
+	lw $s2, 68($t1)
+	lw $s3, 72($t1)
+	lw $s4, 76($t1)
+	lw $s5, 80($t1)
+	lw $s6, 84($t1)
+	lw $s7, 88($t1)
+	lw $t8, 92($t1)
+	lw $t9, 96($t1)
+	lw $gp, 100($t1)
+	lw $sp, 104($t1)
+	lw $fp, 108($t1)
+	lw $ra, 112($t1)
+	lw $t1, -80($t1)
+	jr $k0
+	
 imprimir_error:
 	li $v0 4		# syscall 4 (print_str)
 	la $a0 __m1_
@@ -239,7 +316,8 @@ instruccion_actual: .word 0
 	.text
 	.globl main
 main:
-
+	li $t1, 3
+	sw $t1, 0xffff0000
 	# Instrumentador de instrucciones.
 
 instrumentador:
@@ -369,9 +447,9 @@ inicializar_informacion:
 	sw $v0, informacion # Almacenamos la direccion de inicio del arreglo de informacion en la etiqueta "informacion".
 	
 inicializar_ambiente:
-	beq $t1, $t0,fin  # Reviso si inicialice la informacion de todos los programas
+	beq $t1, $t0,correr_programa  # Reviso si inicialice la informacion de todos los programas
 	lw $t2, informacion # Almacenamos en $t2 la direccion de inicio del arreglo de informacion
-	li $a0, 120 # Almacenamos en $a0 la cantidad de bytes que queremos reservar para la informacion del ambiente de cada
+	li $a0, 116 # Almacenamos en $a0 la cantidad de bytes que queremos reservar para la informacion del ambiente de cada
 		    # programa
 	li $v0, 9
 	syscall # Hacemos el syscall de reserva de espacio
