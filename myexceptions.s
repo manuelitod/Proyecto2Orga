@@ -403,6 +403,15 @@ informacion: .space 4
 programa_actual: .word 0
 instruccion_actual: .word 0
 finv0: .word 0
+programa: .ascii "Programa "
+abre: .ascii " ("
+cierra: .asciiz ") "
+numero: .ascii "Numero de adds: "
+finalizado : .space 4
+adds: .space 4
+finalizado1: .ascii "Finalizado"
+nofinalizado: .ascii "No Finalizado"
+
 	################################################################
 	##
 	## El siguiente bloque debe ser usado para la inicialización
@@ -587,7 +596,7 @@ inicializar_ambiente:
 	addi $t2, $t2, 4 # Nos movemos a los terceros 4 bytes.
 	li $t5, 0 
 	sw $t5, ($t2) # Almacenamos en los terceros 4 bytes de la posicion actual del arreglo si el programa asociado
-				 # ya finalizo (0 si no ha finalizad, 1 en caso contrario).
+				 # ya finalizo (0 si no ha finalizad0, 1 en caso contrario).
 	addi $t2, $t2, 4  # Nos movemos a los cuartos 4 bytes.
 	sw $t5, ($t2) # Almacenamos en los cuartos 4 bytes la cantidad actual de adds ejecutados en el programa.		 
 	addi $t1, $t1, 1
@@ -598,6 +607,56 @@ correr_programa:
 	jr $t1	
 	
 fin:
+	lw $t0, NUM_PROGS
+	bnez $t0, fin_fin
+	lw $t1, informacion
+	mul $t0, $t0, 16
+	addi $t0, $t0, 8
+	lw $t2, ($t0)
+	sw $t2, finalizado
+	addi $t0, $t0, 4
+	lw $t2, ($t0)
+	sw $t2, adds
+	lw $a0, programa
+	li $v0, 4
+	syscall
+	move $a0, $t0
+	li $v0, 1
+	syscall
+	lw $a0, abre
+	li $v0, 4
+	syscall
+	lw $t3, finalizado
+	beqz $t3, fin_no_finalizado
+	lw $a0, finalizado1
+	li $v0, 4
+	syscall
+	lw $a0, cierra
+	syscall
+	lw $a0, numero
+	syscall
+	lw $a0, adds
+	li $v0, 1
+	syscall
+	addi $t0, $t0, -1
+	sw $t0, NUM_PROGS
+	b fin
+fin_no_finalizado:
+	lw $a0, nofinalizado
+	li $v0, 4
+	syscall
+	lw $a0, cierra
+	syscall
+	lw $a0, numero
+	syscall
+	lw $a0, adds
+	li $v0, 1
+	syscall
+	addi $t0, $t0, -1
+	sw $t0, NUM_PROGS
+	b fin
+
+fin_fin:	
 	li $v0 10
 	syscall			# syscall 10 (exit)
 
