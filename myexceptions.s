@@ -119,22 +119,23 @@ break_0x10:
 	addi $t2, $t2, 8 # Se almacena en $t2 la direccion donde se encuentra la informacion si finalizo o no el programa.
 	li $t4, 1
 	sw $t4, ($t2) # Se asigna 1 como contenido de $t2, que hace referencia a que el programa ya finalizo.
-	addi $t5, $t5, 1
+	addi $t5, $t5, 0
 	addi $t1, $t1, 1
-	lw $t7, 0
+	li $t7, 0
 	
 break_0x10_revisanofinalizado:
-	bgt $t1, $t5, break_0x10_vuelta
-	sw $t1, programa_actual
-	lw $t2, informacion
-	move $t6, $t1
-	mul $t6, $t6, 16
-	add $t6, $t6, 8
-	lw $t6, ($t6)
-	addi $t1, $t1, 1
-	addi $t7, $t7, 1
 	beq $t7, $t5, fin
-	beq $t6, 1, break_0x10_revisanofinalizado
+ 	bgt $t1, $t5, break_0x10_vuelta
+ 	sw $t1, programa_actual
+ 	lw $t6, programa_actual
+ 	lw $t2, informacion
+ 	mul $t6, $t6, 16
+	add $t6, $t2, $t6
+ 	add $t6, $t6, 8
+ 	lw $t6, ($t6)
+ 	addi $t1, $t1, 1
+ 	addi $t7, $t7, 1
+ 	bnez $t6, break_0x10_revisanofinalizado
 	b cargar_ambiente
 	
 break_0x10_vuelta:
@@ -282,6 +283,11 @@ cargar_ambiente:
 	lw $ra, 112($k0)
 	li $k1, 3
 	sw $k1, 0xffff0000
+	lw $k0, programa_actual
+	lw $k1, informacion
+	mul $k0, $k0, 16
+	add $k0, $k1, $k0
+	lw $k0, ($k0)
 	jr $k0
 	
 imprimir_error:
@@ -396,6 +402,7 @@ letra: .space 4
 informacion: .space 4
 programa_actual: .word 0
 instruccion_actual: .word 0
+finv0: .word 0
 	################################################################
 	##
 	## El siguiente bloque debe ser usado para la inicialización
@@ -449,7 +456,7 @@ instrumentador_beqevaluarcaso:
 instrumentador_contaraddbeq:
 	lw $t5, 0($t1) # $t5 contiene el codigo de operacion de la instrucion $t1.
 	beq $t7, $t6, instrumentador_modificarbeq
-	and $t8, $t5, 0x0000003F
+	andi $t8, $t5, 0xFC00003F
 	addi $t1, $t1, 4
 	addi $t7, $t7, 1
 	bne $t8, 32, instrumentador_contaraddbeq
@@ -479,24 +486,45 @@ instrumentador_adds2:
 	beq $t3, $t0, instrumentador_salida
 	lw $t5, 0($t1) # $t5 contiene el codigo de operacion de la instrucion $t1.
 	addi $t1, $t1, 4 # me muevo a la siguiente instruccion
-	and $t6, $t5, 0x0000003F # $t6 contiene cod de funct. Mascara para saber si la instruccion es un add.
-	beq $t5, 0x2402000a, instrumentador_addsendprogram #verifico si la instruccion es un li $v0, 10.
+	andi $t6, $t5, 0xFC00003F # $t6 contiene cod de funct. Mascara para saber si la instruccion es un add.
+	andi $t7, $t5, 0xFFFFFF00
+	beq $t7, 0x24020000, instrumentador_li #verifico si la instruccion es un li $v0.
+	beq $t5, 0x0000000c, instrumentador_syscall #verifico si es un syscall.
+	beq $t5, 0x00000000, instrumentador_moverinstrucciones # Primer nop muevo instrucciones.
 	bne $t6, 32, instrumentador_adds2 # verifico si la instruccion actual es un add.
 	addi $t4, $t4, 1 # si lo es sumo uno al contador.
 	b instrumentador_adds2
-instrumentador_addsendprogram:
-	addi $t1, $t1, -4 # me paro en li $v0, 10
-	addi $t3, $t3, 1
+
+	# Verifico que que valor de v0 cambia.
+instrumentador_li:
+	andi $t7, $t5, 0x000000FF
+	bne $t7, 10, instrumentador_li_nofin
+	li $t7, 1
+	sw $t7, finv0
+	b instrumentador_adds2
+
+instrumentador_li_nofin:
+	li $t7, 0
+	sw $t7, finv0
+	b instrumentador_adds2
+
+instrumentador_syscall:
+	lw $t5, finv0
+	beqz $t5, instrumentador_adds2
+	addi $t1, $t1, -4 # me paro en syscall
 	li $t8, 0x0000040d # $t8 contiene una instruccion.
 	sw $t8, ($t1) # Se sustituye el li $v0, 10 por un break 0x10.
-	addi $t1, $t1, 4 # Actualmente estamos en el syscall.
+	addi $t1, $t1, 4
+	b instrumentador_adds2
+	
 	# Se procede a agregar los breaks ya que se llego a la ultima linea del programa.
 instrumentador_moverinstrucciones:
 	
+	addi $t3, $t3, 1
 	mul $t7, $t4, 4 #$t7 ahora contiene la cantidad de saltos de las instrucciones.
-	addi $t1, $t1, 4 # Actualmente estamos en el siguiente programa.
 	add $t2, $t1, $t7 # $t2 contiene direccion del siguiente programa contando los NOP.
-	addi $t1, $t1, -4 # Actualmente estamos en el final de p $t3.	
+	addi $t2, $t2, -4
+	addi $t1, $t1, -8 # Actualmente estamos en el final de p $t3.	
 	bnez $t7, instrumentador_moverinstrucciones2
 	b instrumentador_adds
 	
@@ -504,7 +532,7 @@ instrumentador_moverinstrucciones2:
 
 	move $t9, $t1 # $t9 se utilizara como la nueva direccion de instruccion.
 	lw $t8, ($t1) # $t8 contiene una instruccion.
-	and $t6, $t8, 0x0000003F # $t6 contiene cod de funct. Mascara para saber si la instruccion es un add.
+	andi $t6, $t8, 0xFC00003F # $t6 contiene cod de funct. Mascara para saber si la instruccion es un add.
 	beq $t6, 32, instrumentador_agregarbreak # verifico si la instruccion actual es un add.
 	add $t9, $t9, $t7
 	sw $t8, ($t9)

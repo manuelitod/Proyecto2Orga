@@ -27,12 +27,12 @@ p1:
 	add $v0, $v0, $t1	
 	li $v0 4
 	la $a0 m1
+	syscall
 	add $v0, $v0, $t1
 	syscall
 	beq $v0, $t1, p1
 	li $t9, 0
 	
-	beq $t9, 0, p1
 	add $v0, $v0, $t1
 
 	li $v0, 10
@@ -48,17 +48,18 @@ p2:
 	li $v0 4
 	la $a0 m2
 	syscall
+	li $t6, 2
+p2x:
+	addi $t7, $t7, 2
 	add $v0, $v0, $t1
 	add $v0, $v0, $t1
 	li $v0 4
-	add $v0, $v0, $t1	
-	la $a0 m1
-	syscall
-	beq $v0, $t1, p2
+	add $v0, $v0, $t1
+	beq $t7, $t6, p2x
 	
-	b p2
-
         add $t1, $t1, $t1
+        li $t0 3
+        li $t1 2
 	
 	li $v0, 10
 	syscall
@@ -67,13 +68,18 @@ p2:
 	nop
 	nop
 	nop
+	
 
 p3:	
+	add $v0, $t0, $t6
+	addi $t1, $t1, 1
+	beq $t0, $t1, p3
+	li $v0, 10
+	syscall
+	add $v1, $v0, $v1
 	li $v0 4
 	la $a0 m3
 	syscall
-
-	b p3
 
 	li $v0, 10
 	syscall
