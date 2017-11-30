@@ -119,13 +119,13 @@ break_0x10:
 	addi $t2, $t2, 8 # Se almacena en $t2 la direccion donde se encuentra la informacion si finalizo o no el programa.
 	li $t4, 1
 	sw $t4, ($t2) # Se asigna 1 como contenido de $t2, que hace referencia a que el programa ya finalizo.
-	addi $t5, $t5, -1
+	addi $t5, $t5, 1
 	addi $t1, $t1, 1
 	lw $t7, 0
 	
 break_0x10_revisanofinalizado:
-	sw $t1, programa_actual
 	bgt $t1, $t5, break_0x10_vuelta
+	sw $t1, programa_actual
 	lw $t2, informacion
 	move $t6, $t1
 	mul $t6, $t6, 16
@@ -138,58 +138,150 @@ break_0x10_revisanofinalizado:
 	b cargar_ambiente
 	
 break_0x10_vuelta:
-	li $t1, 0 # Si el antiguo programa actual era el ultimo colocamos como programa actual el primero
+	li $t1, 1 # Si el antiguo programa actual era el ultimo colocamos como programa actual el primero
+	sw $t1, programa_actual
 	b break_0x10_revisanofinalizado
 	
 	# Print information about exception.
 	#
 interrupcion_teclado: 
-	li $v0, 1
-	li $a0, 3
-	syscall
+	lw $t0, 0xffff0004
+	lw $t0, ($t0)
+	andi $t0, 0x000000ff
+	beq $t0, 73, interrupcion_teclado_s
+	beq $t0, 53, interrupcion_teclado_s
+	beq $t0, 70, interrupcion_teclado_p
+	beq $t0, 50, interrupcion_teclado_p
+	beq $t0, 27, interrupcion_teclado_esc
 	li $t1, 3
 	sw $t1, 0xffff0000
 	b ret
-guardar_ambiente:
-
-	b cargar_ambiente
+interrupcion_teclado_s:
+	li $t1, 1
+	sw $t1, letra
+	b guardar_ambiente
+interrupcion_teclado_p:
+	li $t1, 2
+	sw $t1, letra
+	b guardar_ambiente
+interrupcion_teclado_esc:
+	b fin
 	
-cargar_ambiente:
+guardar_ambiente:
+	lw $k0, programa_actual
+	lw $k1, informacion
+	mul $k0, $k0, 16
+	add $k0, $k1, $k0
+	addi $k0, $k0, 4
+	sw $k0, ($k0)
+	sw $at, 0($k0)
+	sw $v0, 4($k0)
+	sw $v1, 8($k0)
+	sw $a0, 12($k0)
+	sw $a1, 16($k0)
+	sw $a2, 20($k0)
+	sw $a3, 24($k0)
+	sw $t0, 28($k0)
+	sw $t1, 32($k0)
+	sw $t2, 36($k0)	
+	sw $t3, 40($k0)
+	sw $t4, 44($k0)
+	sw $t5, 48($k0)
+	sw $t6, 52($k0)
+	sw $t7, 56($k0)
+	sw $s0, 60($k0)
+	sw $s1, 64($k0)
+	sw $s2, 68($k0)
+	sw $s3, 72($k0)
+	sw $s4, 76($k0)
+	sw $s5, 80($k0)
+	sw $s6, 84($k0)
+	sw $s7, 88($k0)
+	sw $t8, 92($k0)
+	sw $t9, 96($k0)
+	sw $gp, 100($k0)
+	sw $sp, 104($k0)
+	sw $fp, 108($k0)
+	sw $ra, 112($k0)
+	lw $t0, letra
+	lw $t3, NUM_PROGS
+	addi $t3, $t3, 1
+	beq $t0, 1, buscar_siguiente
+	addi $t3, $t3, -1
+	beq $t0, 2, buscar_anterior
+	
+buscar_siguiente:
 	lw $t1, programa_actual
+	beq $t1, $t3, buscar_siguiente_vuelta
+	addi $t1, $t1, 1
+	sw $t1, programa_actual
+	lw $t2, informacion
 	mul $t1, $t1, 16
 	add $t1, $t2, $t1
-	move $k0, $t1
-	addi $t1, $t1, 4
+	addi $t1, $t1, 8
 	lw $t1, ($t1)
-	lw $at, 0($t1)
-	lw $v0, 4($t1)
-	lw $v1, 8($t1)
-	lw $a0, 12($t1)
-	lw $a1, 16($t1)
-	lw $a2, 20($t1)
-	lw $a3, 24($t1)
-	lw $t0, 28($t1)
-	lw $t2, 36($t1)	
-	lw $t3, 40($t1)
-	lw $t4, 44($t1)
-	lw $t5, 48($t1)
-	lw $t6, 52($t1)
-	lw $t7, 56($t1)
-	lw $s0, 60($t1)
-	lw $s1, 64($t1)
-	lw $s2, 68($t1)
-	lw $s3, 72($t1)
-	lw $s4, 76($t1)
-	lw $s5, 80($t1)
-	lw $s6, 84($t1)
-	lw $s7, 88($t1)
-	lw $t8, 92($t1)
-	lw $t9, 96($t1)
-	lw $gp, 100($t1)
-	lw $sp, 104($t1)
-	lw $fp, 108($t1)
-	lw $ra, 112($t1)
-	lw $t1, -80($t1)
+	beqz $t1, cargar_ambiente
+	b buscar_siguiente
+	
+buscar_siguiente_vuelta:
+	li $t1, 1
+	sw $t1, programa_actual
+	b buscar_siguiente
+	
+buscar_anterior:
+	lw $t1, programa_actual
+	beqz $t1, buscar_anterior_vuelta
+	addi $t1, $t1, -1
+	sw $t1, programa_actual
+	lw $t2, informacion
+	mul $t1, $t1, 16
+	add $t1, $t2, $t1
+	addi $t1, $t1, 8
+	lw $t1, ($t1)
+	beqz $t1, cargar_ambiente
+	b buscar_anterior 
+buscar_anterior_vuelta:
+	sw $t3, programa_actual
+	b buscar_anterior	
+
+cargar_ambiente:
+	lw $k0, programa_actual
+	lw $k1, informacion
+	mul $k0, $k0, 16
+	add $k0, $k1, $k0
+	addi $k0, $k0, 4
+	lw $k0, ($k0)
+	lw $at, 0($k0)
+	lw $v0, 4($k0)
+	lw $v1, 8($k0)
+	lw $a0, 12($k0)
+	lw $a1, 16($k0)
+	lw $a2, 20($k0)
+	lw $a3, 24($k0)
+	lw $t0, 28($k0)
+	lw $t2, 36($k0)	
+	lw $t1, 32($k0)
+	lw $t3, 40($k0)
+	lw $t4, 44($k0)
+	lw $t5, 48($k0)
+	lw $t6, 52($k0)
+	lw $t7, 56($k0)
+	lw $s0, 60($k0)
+	lw $s1, 64($k0)
+	lw $s2, 68($k0)
+	lw $s3, 72($k0)
+	lw $s4, 76($k0)
+	lw $s5, 80($k0)
+	lw $s6, 84($k0)
+	lw $s7, 88($k0)
+	lw $t8, 92($k0)
+	lw $t9, 96($k0)
+	lw $gp, 100($k0)
+	lw $sp, 104($k0)
+	lw $fp, 108($k0)
+	lw $ra, 112($k0)
+	li $k1, 3
+	sw $k1, 0xffff0000
 	jr $k0
 	
 imprimir_error:
@@ -300,6 +392,7 @@ __eoth:
 	################################################################
 	
 	.data
+letra: .space 4
 informacion: .space 4
 programa_actual: .word 0
 instruccion_actual: .word 0
@@ -397,7 +490,6 @@ instrumentador_addsendprogram:
 	li $t8, 0x0000040d # $t8 contiene una instruccion.
 	sw $t8, ($t1) # Se sustituye el li $v0, 10 por un break 0x10.
 	addi $t1, $t1, 4 # Actualmente estamos en el syscall.
-	
 	# Se procede a agregar los breaks ya que se llego a la ultima linea del programa.
 instrumentador_moverinstrucciones:
 	
