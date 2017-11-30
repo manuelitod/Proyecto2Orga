@@ -59,7 +59,7 @@ p2x:
 	
         add $t1, $t1, $t1
         li $t0 3
-        li $t1 2
+        li $t1 1
 	
 	li $v0, 10
 	syscall
@@ -71,8 +71,7 @@ p2x:
 	
 
 p3:	
-	add $v0, $t0, $t6
-	addi $t1, $t1, 1
+	add $v0, $v0, $t6
 	beq $t0, $t1, p3
 	li $v0, 10
 	syscall

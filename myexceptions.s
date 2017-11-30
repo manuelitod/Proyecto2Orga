@@ -407,8 +407,8 @@ programa: .ascii "Programa "
 abre: .ascii " ("
 cierra: .asciiz ") "
 numero: .ascii "Numero de adds: "
-finalizado : .space 4
-adds: .space 4
+finalizado : .word 0
+adds: .word 0
 finalizado1: .ascii "Finalizado"
 nofinalizado: .ascii "No Finalizado"
 
@@ -604,57 +604,66 @@ inicializar_ambiente:
 	
 correr_programa:
 	lw $t1, PROGS
-	jr $t1	
+	jr $t1
 	
+
 fin:
 	lw $t0, NUM_PROGS
-	bnez $t0, fin_fin
+	addi $t0, $t0, -1
+	sw $t0, NUM_PROGS	
+	
+fin_aux:
+	lw $t0, NUM_PROGS
+	move $t8, $t0
+	li $t9, -1
+	beq $t8, $t9, fin_fin
 	lw $t1, informacion
 	mul $t0, $t0, 16
 	addi $t0, $t0, 8
-	lw $t2, ($t0)
+	add $t1, $t0, $t1
+	lw $t2, ($t1)
 	sw $t2, finalizado
-	addi $t0, $t0, 4
-	lw $t2, ($t0)
+	addi $t1, $t1, 4
+	lw $t2, ($t1)
 	sw $t2, adds
-	lw $a0, programa
+	la $a0, programa
 	li $v0, 4
 	syscall
 	move $a0, $t0
 	li $v0, 1
 	syscall
-	lw $a0, abre
+	la $a0, abre
 	li $v0, 4
 	syscall
 	lw $t3, finalizado
 	beqz $t3, fin_no_finalizado
-	lw $a0, finalizado1
+	la $a0, finalizado1
 	li $v0, 4
 	syscall
-	lw $a0, cierra
+	la $a0, cierra
 	syscall
-	lw $a0, numero
+	la $a0, numero
 	syscall
 	lw $a0, adds
 	li $v0, 1
 	syscall
-	addi $t0, $t0, -1
-	sw $t0, NUM_PROGS
-	b fin
+	addi $t8, $t8, -1
+	sw $t8, NUM_PROGS
+	b fin_aux
 fin_no_finalizado:
-	lw $a0, nofinalizado
+	la $a0, nofinalizado
 	li $v0, 4
 	syscall
-	lw $a0, cierra
+	la $a0, cierra
 	syscall
-	lw $a0, numero
+	la $a0, numero
 	syscall
 	lw $a0, adds
 	li $v0, 1
 	syscall
 	addi $t0, $t0, -1
 	sw $t0, NUM_PROGS
-	b fin
+	b fin_aux
 
 fin_fin:	
 	li $v0 10
