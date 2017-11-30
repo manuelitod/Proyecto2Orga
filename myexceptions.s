@@ -119,7 +119,7 @@ break_0x10:
 	addi $t2, $t2, 8 # Se almacena en $t2 la direccion donde se encuentra la informacion si finalizo o no el programa.
 	li $t4, 1
 	sw $t4, ($t2) # Se asigna 1 como contenido de $t2, que hace referencia a que el programa ya finalizo.
-	addi $t5, $t5, 0
+	addi $t5, $t5, -1
 	addi $t1, $t1, 1
 	li $t7, 0
 	
