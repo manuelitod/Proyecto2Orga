@@ -59,7 +59,7 @@ p2x:
 	
         add $t1, $t1, $t1
         li $t0 3
-        li $t1 1
+        li $t1 0
 	
 	li $v0, 10
 	syscall
@@ -71,15 +71,27 @@ p2x:
 	
 
 p3:	
+	li $t0 3
+        li $t1 0
+p3_aux:
 	add $v0, $v0, $t6
-	beq $t0, $t1, p3
-	li $v0, 10
-	syscall
+	addi $t1, $t1, 1
 	add $v1, $v0, $v1
 	li $v0 4
 	la $a0 m3
 	syscall
+	bne $t0, $t1, p3_aux
 
+	add $v0, $v0, $t6
+	add $v1, $v0, $v1
+	add $v0, $v0, $t6
+	add $v1, $v0, $v1
 	li $v0, 10
 	syscall
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 	

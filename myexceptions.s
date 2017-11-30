@@ -78,6 +78,13 @@ s2:	.word 0
 # This is the exception vector address for MIPS32:
 	.ktext 0x80000180
 # Select the appropriate one for the mode in which MIPS is compiled.
+	
+	lw $k0, pila
+	sw $t1, ($k0)
+	sw $t2, 4($k0)
+	sw $t3, 8($k0)
+	sw $t4, 12($k0)
+	sw $t5, 16($k0)
 	mfc0 $k1 $14	
 	sw $v0 s1		# Not re-entrant and we can't trust $sp
 	sw $a0 s2		# But we need to use these registers
@@ -95,6 +102,12 @@ s2:	.word 0
 	andi $t5, 0x03ffffc0 # Revisamos cual es el codigo del break.
 	beq $t5, 1024, break_0x10 # Se filtra si el break es 0x10.
 	beq $t5, 2048, break_0x20 # Se filtra si el break es 0x20.
+	lw $k1, pila
+	lw $t1, 0($k1)
+	lw $t2, 4($k1)
+	lw $t3, 8($k1)
+	lw $t4, 12($k1)
+	lw $t5, 16($k1)
 	b imprimir_error # Si el break no es de los dos tipos antes mencionados se imprime el mensaje correspondiente.
 	
 break_0x20:
@@ -107,6 +120,12 @@ break_0x20:
 	lw $t4, ($t2) # Almacenamos en $t4 la cantidad de ands del programa.
 	addi $t4, $t4, 1 # Aumentamos el contenido de $t4 en uno.
 	sw $t4, ($t2)
+	lw $k1, pila
+	lw $t1, ($k1)
+	lw $t2, 4($k1)
+	lw $t3, 8($k1)
+	lw $t4, 12($k1)
+	lw $t5, 16($k1)
 	b ret
 	
 break_0x10:
@@ -146,24 +165,24 @@ break_0x10_vuelta:
 	# Print information about exception.
 	#
 interrupcion_teclado: 
-	lw $t0, 0xffff0004
-	lw $t0, ($t0)
-	andi $t0, 0x000000ff
-	beq $t0, 73, interrupcion_teclado_s
-	beq $t0, 53, interrupcion_teclado_s
-	beq $t0, 70, interrupcion_teclado_p
-	beq $t0, 50, interrupcion_teclado_p
-	beq $t0, 27, interrupcion_teclado_esc
-	li $t1, 3
-	sw $t1, 0xffff0000
+	lw $k0, 0xffff0004
+	lw $k0, ($k0)
+	andi $k0, 0x000000ff
+	beq $k0, 73, interrupcion_teclado_s
+	beq $k0, 53, interrupcion_teclado_s
+	beq $k0, 70, interrupcion_teclado_p
+	beq $k0, 50, interrupcion_teclado_p
+	beq $k0, 27, interrupcion_teclado_esc
+	li $k1, 3
+	sw $k1, 0xffff0000
 	b ret
 interrupcion_teclado_s:
-	li $t1, 1
-	sw $t1, letra
+	li $k1, 1
+	sw $k1, letra
 	b guardar_ambiente
 interrupcion_teclado_p:
-	li $t1, 2
-	sw $t1, letra
+	li $k1, 2
+	sw $k1, letra
 	b guardar_ambiente
 interrupcion_teclado_esc:
 	b fin
@@ -403,14 +422,16 @@ informacion: .space 4
 programa_actual: .word 0
 instruccion_actual: .word 0
 finv0: .word 0
-programa: .ascii "Programa "
-abre: .ascii " ("
-cierra: .asciiz ") "
-numero: .ascii "Numero de adds: "
+programa: .asciiz "Programa "
+abre: .asciiz " ("
+cierra: .asciiz ") \n"
+numero: .asciiz "Numero de adds: "
+espacio: .asciiz " \n"
 finalizado : .word 0
 adds: .word 0
-finalizado1: .ascii "Finalizado"
-nofinalizado: .ascii "No Finalizado"
+finalizado1: .asciiz "Finalizado"
+nofinalizado: .asciiz "No Finalizado"
+pila: .word 0
 
 	################################################################
 	##
@@ -574,6 +595,10 @@ inicializar_informacion:
 	li $v0, 9
 	syscall
 	sw $v0, informacion # Almacenamos la direccion de inicio del arreglo de informacion en la etiqueta "informacion".
+	li $a0, 20
+	li $v0, 9
+	syscall
+	sw $v0, pila
 	
 inicializar_ambiente:
 	beq $t1, $t0,correr_programa  # Reviso si inicialice la informacion de todos los programas
@@ -615,6 +640,7 @@ fin:
 fin_aux:
 	lw $t0, NUM_PROGS
 	move $t8, $t0
+	move $t4, $t0
 	li $t9, -1
 	beq $t8, $t9, fin_fin
 	lw $t1, informacion
@@ -629,7 +655,8 @@ fin_aux:
 	la $a0, programa
 	li $v0, 4
 	syscall
-	move $a0, $t0
+	move $a0, $t4
+	addi $a0, $a0, 1
 	li $v0, 1
 	syscall
 	la $a0, abre
@@ -646,6 +673,9 @@ fin_aux:
 	syscall
 	lw $a0, adds
 	li $v0, 1
+	syscall
+	la $a0, espacio
+	li $v0, 4
 	syscall
 	addi $t8, $t8, -1
 	sw $t8, NUM_PROGS
