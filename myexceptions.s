@@ -208,10 +208,8 @@ interrupcion_teclado:
 	beq $k0, 0x00000070, interrupcion_teclado_p
 	beq $k0, 0x00000050, interrupcion_teclado_p
 	beq $k0, 0x0000001b, interrupcion_teclado_esc
-	li $k1, 3
-	sw $k1, 0xffff0000
 	li $k1, 2
-	sw $k1, 0xffff0008
+	sw $k1, 0xffff0000
 	b ret
 interrupcion_teclado_s:
 	li $k1, 1
@@ -222,6 +220,9 @@ interrupcion_teclado_p:
 	sw $k1, letra
 	b guardar_ambiente
 interrupcion_teclado_esc:
+	la $a0, esc
+	li $v0, 4
+	syscall
 	b fin
 	
 guardar_ambiente:
@@ -350,15 +351,13 @@ cargar_ambiente:
 	lw $sp, 104($k0)
 	lw $fp, 108($k0)
 	lw $ra, 112($k0)
-	li $k1, 2
-	sw $k1, 0xffff0000
-	li $k1, 2
-	sw $k1, 0xffff0008
 	lw $k0, programa_actual
 	lw $k1, informacion
 	mul $k0, $k0, 16
 	add $k0, $k1, $k0
 	lw $k0, ($k0)
+	li $k1, 2
+	sw $k1, 0xffff0000
 	jr $k0
 
 # Planificacion de Registros:
@@ -490,6 +489,7 @@ nofinalizado: .asciiz "No Finalizado" # Etiqueta utilizada para guardar una pala
 pila: .word 0 # Etiqueta que posee la direccion de un espacio de memoria utilizada como pila
 elprog: .asciiz "El programa "
 hafin: .asciiz " ha finalizado\n"
+esc .asciiz "La maquina se ha apagado."
 
 	################################################################
 	##
@@ -504,7 +504,7 @@ hafin: .asciiz " ha finalizado\n"
 	.text
 	.globl main
 main:
-	li $t1, 3
+	li $t1, 2
 	sw $t1, 0xffff0000
 	# Instrumentador de instrucciones.
 
