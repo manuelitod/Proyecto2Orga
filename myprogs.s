@@ -23,75 +23,35 @@ m3:	.asciiz "p3\n"
 	.text
 
 p1:
-	add $v0, $v0, $t1
-	add $v0, $v0, $t1	
+	li $t0, 0
+	li $t1, 0
 	li $v0 4
 	la $a0 m1
 	syscall
-	add $v0, $v0, $t1
-	syscall
-	beq $v0, $t1, p1
-	li $t9, 0
-	
-	add $v0, $v0, $t1
-
+	beq $t0, $t1, p1
 	li $v0, 10
-        syscall
-        nop
-        nop
-        nop
-        nop
+	syscall
+	nop
+	
 
-p2:	
-
-	add $v0, $v0, $t1
+p2:
+	li $t0, 0
+	li $t1, 0
 	li $v0 4
 	la $a0 m2
 	syscall
-	li $t6, 2
-p2x:
-	addi $t7, $t7, 2
-	add $v0, $v0, $t1
-	add $v0, $v0, $t1
-	li $v0 4
-	add $v0, $v0, $t1
-	beq $t7, $t6, p2x
-	
-        add $t1, $t1, $t1
-        li $t0 3
-        li $t1 0
-	
+	beq $t0, $t1, p2
 	li $v0, 10
 	syscall
 	nop
-	nop
-	nop
-	nop
-	nop
-	
 
-p3:	
-	li $t0 3
-        li $t1 0
-p3_aux:
-	add $v0, $v0, $t6
-	addi $t1, $t1, 1
-	add $v1, $v0, $v1
+p3:
+	li $t0, 0
+	li $t1, 0
 	li $v0 4
 	la $a0 m3
 	syscall
-	bne $t0, $t1, p3_aux
-
-	add $v0, $v0, $t6
-	add $v1, $v0, $v1
-	add $v0, $v0, $t6
-	add $v1, $v0, $v1
+	beq $t0, $t1, p3
 	li $v0, 10
 	syscall
 	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	

@@ -150,7 +150,7 @@ break_0x10:
 	li $t7, 0
 	
 break_0x10_revisanofinalizado:
-	beq $t7, $t5, fin
+	beq $t7, $t5, fin_break_0x10
  	bgt $t1, $t5, break_0x10_vuelta
  	sw $t1, programa_actual
  	lw $t6, programa_actual
@@ -162,10 +162,32 @@ break_0x10_revisanofinalizado:
  	addi $t1, $t1, 1
  	addi $t7, $t7, 1
  	bnez $t6, break_0x10_revisanofinalizado
+ 	addi $t1, $t1, -1
+ 	la $a0, elprog
+ 	li $v0, 4
+ 	syscall
+ 	move $a0, $t1
+ 	li $v0, 1
+ 	syscall
+ 	la $a0, hafin
+ 	li $v0, 4
+ 	syscall
 	b cargar_ambiente
+fin_break_0x10:
+	addi $t1, $t1, 1
+ 	la $a0, elprog
+ 	li $v0, 4
+ 	syscall
+ 	move $a0, $t1
+ 	li $v0, 1
+ 	syscall
+ 	la $a0, hafin
+ 	li $v0, 4
+ 	syscall
+	b fin
 	
 break_0x10_vuelta:
-	li $t1, 1 # Si el antiguo programa actual era el ultimo colocamos como programa actual el primero
+	li $t1, 0 # Si el antiguo programa actual era el ultimo colocamos como programa actual el primero
 	sw $t1, programa_actual
 	b break_0x10_revisanofinalizado
 	
@@ -180,15 +202,16 @@ break_0x10_vuelta:
 	
 interrupcion_teclado: 
 	lw $k0, 0xffff0004
-	lw $k0, ($k0)
 	andi $k0, 0x000000ff
-	beq $k0, 73, interrupcion_teclado_s
-	beq $k0, 53, interrupcion_teclado_s
-	beq $k0, 70, interrupcion_teclado_p
-	beq $k0, 50, interrupcion_teclado_p
-	beq $k0, 27, interrupcion_teclado_esc
+	beq $k0, 0x00000073, interrupcion_teclado_s
+	beq $k0, 0x00000053, interrupcion_teclado_s
+	beq $k0, 0x00000070, interrupcion_teclado_p
+	beq $k0, 0x00000050, interrupcion_teclado_p
+	beq $k0, 0x0000001b, interrupcion_teclado_esc
 	li $k1, 3
 	sw $k1, 0xffff0000
+	li $k1, 2
+	sw $k1, 0xffff0008
 	b ret
 interrupcion_teclado_s:
 	li $k1, 1
@@ -207,10 +230,18 @@ guardar_ambiente:
 	mul $k0, $k0, 16
 	add $k0, $k1, $k0
 	addi $k0, $k0, 4
-	sw $k0, ($k0)
+	lw $k1, pila
+	lw $t1, 0($k1)
+	lw $t2, 4($k1)
+	lw $t3, 8($k1)
+	lw $t4, 12($k1)
+	lw $t5, 16($k1)
+	lw $k0, ($k0)
 	sw $at, 0($k0)
+	lw $v0, s1
 	sw $v0, 4($k0)
 	sw $v1, 8($k0)
+	lw $a0, s2
 	sw $a0, 12($k0)
 	sw $a1, 16($k0)
 	sw $a2, 20($k0)
@@ -239,9 +270,8 @@ guardar_ambiente:
 	sw $ra, 112($k0)
 	lw $t0, letra
 	lw $t3, NUM_PROGS
-	addi $t3, $t3, 1
-	beq $t0, 1, buscar_siguiente
 	addi $t3, $t3, -1
+	beq $t0, 1, buscar_siguiente
 	beq $t0, 2, buscar_anterior
 	
 buscar_siguiente:
@@ -258,14 +288,7 @@ buscar_siguiente:
 	b buscar_siguiente
 	
 buscar_siguiente_vuelta:
-	li $t1, 1
-	sw $t1, programa_actual
-	b buscar_siguiente
-	
-buscar_anterior:
-	lw $t1, programa_actual
-	beqz $t1, buscar_anterior_vuelta
-	addi $t1, $t1, -1
+	li $t1, 0
 	sw $t1, programa_actual
 	lw $t2, informacion
 	mul $t1, $t1, 16
@@ -273,6 +296,19 @@ buscar_anterior:
 	addi $t1, $t1, 8
 	lw $t1, ($t1)
 	beqz $t1, cargar_ambiente
+	b buscar_siguiente
+	
+buscar_anterior:
+	lw $t1, programa_actual
+	beqz $t1, buscar_anterior_vuelta
+	sw $t1, programa_actual
+	lw $t2, informacion
+	mul $t1, $t1, 16
+	add $t1, $t2, $t1
+	addi $t1, $t1, 8
+	lw $t1, ($t1)
+	beqz $t1, cargar_ambiente
+	addi $t1, $t1, -1
 	b buscar_anterior 
 buscar_anterior_vuelta:
 	sw $t3, programa_actual
@@ -314,8 +350,10 @@ cargar_ambiente:
 	lw $sp, 104($k0)
 	lw $fp, 108($k0)
 	lw $ra, 112($k0)
-	li $k1, 3
+	li $k1, 2
 	sw $k1, 0xffff0000
+	li $k1, 2
+	sw $k1, 0xffff0008
 	lw $k0, programa_actual
 	lw $k1, informacion
 	mul $k0, $k0, 16
@@ -450,6 +488,8 @@ adds: .word 0 # Etiqueta que guarda la cantidad de adds registrada por cada prog
 finalizado1: .asciiz "Finalizado" # Etiqueta utilizada para guardar una palabra a imprimir
 nofinalizado: .asciiz "No Finalizado" # Etiqueta utilizada para guardar una palabra a imprimir
 pila: .word 0 # Etiqueta que posee la direccion de un espacio de memoria utilizada como pila
+elprog: .asciiz "El programa "
+hafin: .asciiz " ha finalizado\n"
 
 	################################################################
 	##
@@ -531,6 +571,7 @@ instrumentador_modificarbeq:
 # Planificacion de registros:
 # $t0 Registro que almacena la cnatidad de programas a instrumentar
 # $t1 Registro utilizado para almacenar la direccion de la instruccion a instrumentar
+# $t2 Registro que contiene direccion del siguiente programa contando los NOP.
 # $t3 Registro utilizado como contador de iteraciones
 # $t4 Registro utilizado como contador de adds
 # $t5 Registro utilizado para almacenar el codigo de operacion de la instruccion a instrumentar
