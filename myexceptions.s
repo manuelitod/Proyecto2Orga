@@ -580,7 +580,7 @@ correr_programa:
 	
 fin:
 	lw $t0, NUM_PROGS
-	bnez $t0, fin_fin
+	beqz $t0, fin_fin
 	lw $t1, informacion
 	mul $t0, $t0, 16
 	addi $t0, $t0, 8
