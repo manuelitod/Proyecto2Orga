@@ -78,23 +78,43 @@ s2:	.word 0
 # This is the exception vector address for MIPS32:
 	.ktext 0x80000180
 # Select the appropriate one for the mode in which MIPS is compiled.
+	
+	
+# Planificacion de Registros:
+# $t1 Almacena el indice del programa actual a ejecutarse
+# $t2 Almacena la direccion del inicio de la lista de informacion
+# $t3 Registro auxiliar para realizar operaciones
+# $t4 Registro utilizado para almacenar informacion a ingresar en la lista de informacion
+# $t5 Registro auxiliar utilizado para realizar las comparaciones de los branch
+# $t6 Registro utilizado para movernos entre los elementos de la lista de informacion
+# $t7 Registro utilizado como contador de iteraciones
+
+	lw $k0, pila
+	sw $t1, ($k0)
+	sw $t2, 4($k0)
+	sw $t3, 8($k0)
+	sw $t4, 12($k0)
+	sw $t5, 16($k0)
 	mfc0 $k1 $14	
 	sw $v0 s1		# Not re-entrant and we can't trust $sp
 	sw $a0 s2		# But we need to use these registers
 
 	mfc0 $k0 $13		# Cause register
 	srl $a0 $k0 2		# Extract ExcCode Field
-	#move $a1, $a0
-	# srl $a1, $a1, 6
+	
 	andi $a0 $a0 0x1f
-	# andi $a1, $a1, 0xff
-	# beqz $a1, interrupcion_teclado
 	beqz $a0, interrupcion_teclado	
 	bne $a0, 9, imprimir_error # Si la excepcion no se debe a un break se imprime el mensaje correspondiente.
 	lw $t5, ($k1)	# Almacenamos en $t5 el codigo de operacion del break.
 	andi $t5, 0x03ffffc0 # Revisamos cual es el codigo del break.
 	beq $t5, 1024, break_0x10 # Se filtra si el break es 0x10.
 	beq $t5, 2048, break_0x20 # Se filtra si el break es 0x20.
+	lw $k1, pila
+	lw $t1, 0($k1)
+	lw $t2, 4($k1)
+	lw $t3, 8($k1)
+	lw $t4, 12($k1)
+	lw $t5, 16($k1)
 	b imprimir_error # Si el break no es de los dos tipos antes mencionados se imprime el mensaje correspondiente.
 	
 break_0x20:
@@ -107,6 +127,12 @@ break_0x20:
 	lw $t4, ($t2) # Almacenamos en $t4 la cantidad de ands del programa.
 	addi $t4, $t4, 1 # Aumentamos el contenido de $t4 en uno.
 	sw $t4, ($t2)
+	lw $k1, pila
+	lw $t1, ($k1)
+	lw $t2, 4($k1)
+	lw $t3, 8($k1)
+	lw $t4, 12($k1)
+	lw $t5, 16($k1)
 	b ret
 	
 break_0x10:
@@ -119,23 +145,23 @@ break_0x10:
 	addi $t2, $t2, 8 # Se almacena en $t2 la direccion donde se encuentra la informacion si finalizo o no el programa.
 	li $t4, 1
 	sw $t4, ($t2) # Se asigna 1 como contenido de $t2, que hace referencia a que el programa ya finalizo.
-	addi $t1, $t1, 1
 	addi $t5, $t5, -1
+	addi $t1, $t1, 1
 	li $t7, 0
 	
 break_0x10_revisanofinalizado:
 	beq $t7, $t5, fin
-	bgt $t1, $t5, break_0x10_vuelta
-	sw $t1, programa_actual
-	lw $t6, programa_actual
-	lw $t2, informacion
-	mul $t6, $t6, 16
+ 	bgt $t1, $t5, break_0x10_vuelta
+ 	sw $t1, programa_actual
+ 	lw $t6, programa_actual
+ 	lw $t2, informacion
+ 	mul $t6, $t6, 16
 	add $t6, $t2, $t6
-	add $t6, $t6, 8
-	lw $t6, ($t6)
-	addi $t1, $t1, 1
-	addi $t7, $t7, 1
-	bnez $t6, break_0x10_revisanofinalizado
+ 	add $t6, $t6, 8
+ 	lw $t6, ($t6)
+ 	addi $t1, $t1, 1
+ 	addi $t7, $t7, 1
+ 	bnez $t6, break_0x10_revisanofinalizado
 	b cargar_ambiente
 	
 break_0x10_vuelta:
@@ -145,25 +171,32 @@ break_0x10_vuelta:
 	
 	# Print information about exception.
 	#
+	
+# Planificacion de Registros:
+# $t1 Almacena el valor del programa actual 
+# $t2 Almacena la direccion de inicio de la lista de informacion
+# $t3 Almacena el numero de programas 
+# $k0 y $k1 se utilizan como registros auxiliares
+	
 interrupcion_teclado: 
-	lw $t0, 0xffff0004
-	lw $t0, ($t0)
-	andi $t0, 0x000000ff
-	beq $t0, 73, interrupcion_teclado_s
-	beq $t0, 53, interrupcion_teclado_s
-	beq $t0, 70, interrupcion_teclado_p
-	beq $t0, 50, interrupcion_teclado_p
-	beq $t0, 27, interrupcion_teclado_esc
-	li $t1, 3
-	sw $t1, 0xffff0000
+	lw $k0, 0xffff0004
+	lw $k0, ($k0)
+	andi $k0, 0x000000ff
+	beq $k0, 73, interrupcion_teclado_s
+	beq $k0, 53, interrupcion_teclado_s
+	beq $k0, 70, interrupcion_teclado_p
+	beq $k0, 50, interrupcion_teclado_p
+	beq $k0, 27, interrupcion_teclado_esc
+	li $k1, 3
+	sw $k1, 0xffff0000
 	b ret
 interrupcion_teclado_s:
-	li $t1, 1
-	sw $t1, letra
+	li $k1, 1
+	sw $k1, letra
 	b guardar_ambiente
 interrupcion_teclado_p:
-	li $t1, 2
-	sw $t1, letra
+	li $k1, 2
+	sw $k1, letra
 	b guardar_ambiente
 interrupcion_teclado_esc:
 	b fin
@@ -283,8 +316,17 @@ cargar_ambiente:
 	lw $ra, 112($k0)
 	li $k1, 3
 	sw $k1, 0xffff0000
+	lw $k0, programa_actual
+	lw $k1, informacion
+	mul $k0, $k0, 16
+	add $k0, $k1, $k0
+	lw $k0, ($k0)
 	jr $k0
-	
+
+# Planificacion de Registros:
+# $v0 Utilizado para cargar el codigo del syscall
+# $a0 utilizado para cargar el contenido a imprimir
+
 imprimir_error:
 	li $v0 4		# syscall 4 (print_str)
 	la $a0 __m1_
@@ -393,18 +435,22 @@ __eoth:
 	################################################################
 	
 	.data
-letra: .space 4
-informacion: .space 4
-programa_actual: .word 0
+letra: .space 4 # Etiqueta donde se almacena la letra que ha causado la interrupcion
+informacion: .space 4 # Etiqueta que almacena la direccion de inicio de la lista que almacena la informacion de los programas
+programa_actual: .word 0 # Etiqueta que contiene el programa actual 
 instruccion_actual: .word 0
-programa: .ascii "Programa "
-abre: .ascii " ("
-cierra: .asciiz ") "
-numero: .ascii "Numero de adds: "
-finalizado : .space 4
-adds: .space 4
-finalizado1: .ascii "Finalizado"
-nofinalizado: .ascii "No Finalizado"
+finv0: .word 0 # Etiqueta que contiene 1 si el valor de $v0 es 10 y 0 enc aso contrario
+programa: .asciiz "Programa " # Etiqueta utilizada para guardar una palabra a imprimir
+abre: .asciiz " (" # Etiqueta utilizada para guardar una palabra a imprimir
+cierra: .asciiz ") \n" # Etiqueta utilizada para guardar una palabra a imprimir
+numero: .asciiz "Numero de adds: " # Etiqueta utilizada para guardar una palabra a imprimir
+espacio: .asciiz " \n" # Etiqueta utilizada para guardar una palabra a imprimir
+finalizado : .word 0 # Etiqueta que almacena 1 si el programa finalizo al momento de imprimir estadisticas y 0 en caso contrario
+adds: .word 0 # Etiqueta que guarda la cantidad de adds registrada por cada programa al momento de imprimir estadisticas
+finalizado1: .asciiz "Finalizado" # Etiqueta utilizada para guardar una palabra a imprimir
+nofinalizado: .asciiz "No Finalizado" # Etiqueta utilizada para guardar una palabra a imprimir
+pila: .word 0 # Etiqueta que posee la direccion de un espacio de memoria utilizada como pila
+
 	################################################################
 	##
 	## El siguiente bloque debe ser usado para la inicialización
@@ -421,6 +467,17 @@ main:
 	li $t1, 3
 	sw $t1, 0xffff0000
 	# Instrumentador de instrucciones.
+
+# Planificacion de Registros:
+# $t0 Almacena la cantidad de programas a instrumentar
+# $t1 Almacena la direccion del arreglo de direcciones de inicio de programas a instrumentar
+# $t3 Registro utilizado como contador de iteraciones
+# $t4 Almacena la cantidad de adds antes de un beq
+# $t5 Contiene el codigo de operacion de la instruccion que se esta instrumentando
+# $t6 Registro auxiliar
+# $t7 Registro utilizado primero para realizar comparaciones y posteriormente como contador de iteraciones 
+# $t8 Mascara del codigo de operacion de la instruccion actual  
+# $t9 Contador de adds
 
 instrumentador:
 
@@ -458,7 +515,7 @@ instrumentador_beqevaluarcaso:
 instrumentador_contaraddbeq:
 	lw $t5, 0($t1) # $t5 contiene el codigo de operacion de la instrucion $t1.
 	beq $t7, $t6, instrumentador_modificarbeq
-	and $t8, $t5, 0x0000003F
+	andi $t8, $t5, 0xFC00003F
 	addi $t1, $t1, 4
 	addi $t7, $t7, 1
 	bne $t8, 32, instrumentador_contaraddbeq
@@ -470,6 +527,18 @@ instrumentador_modificarbeq:
 	sw $t5, ($t1)
 	addi $t1, $t1, 4
 	b instrumentador_beq
+
+# Planificacion de registros:
+# $t0 Registro que almacena la cnatidad de programas a instrumentar
+# $t1 Registro utilizado para almacenar la direccion de la instruccion a instrumentar
+# $t3 Registro utilizado como contador de iteraciones
+# $t4 Registro utilizado como contador de adds
+# $t5 Registro utilizado para almacenar el codigo de operacion de la instruccion a instrumentar
+# $t6 Registro utilizado como mascara del codigo de operacion de la instruccion a instrumentar
+# $t7 Registro utilizado como mascara del codigo de operacion de la instruccion actual y posteriormente para almacenar 1 si $v0 toma
+#     el valor 10, y 0 en caso contrario
+# $t8 Registro auxiliar para almacenar instrucciones
+# $t9 Registro utilizado para movernos entre las direcciones de las instrucciones
 
 instrumentador_break:
 	#0x0000080d Codigo del break 20.
@@ -488,24 +557,45 @@ instrumentador_adds2:
 	beq $t3, $t0, instrumentador_salida
 	lw $t5, 0($t1) # $t5 contiene el codigo de operacion de la instrucion $t1.
 	addi $t1, $t1, 4 # me muevo a la siguiente instruccion
-	and $t6, $t5, 0x0000003F # $t6 contiene cod de funct. Mascara para saber si la instruccion es un add.
-	beq $t5, 0x2402000a, instrumentador_addsendprogram #verifico si la instruccion es un li $v0, 10.
+	andi $t6, $t5, 0xFC00003F # $t6 contiene cod de funct. Mascara para saber si la instruccion es un add.
+	andi $t7, $t5, 0xFFFFFF00
+	beq $t7, 0x24020000, instrumentador_li #verifico si la instruccion es un li $v0.
+	beq $t5, 0x0000000c, instrumentador_syscall #verifico si es un syscall.
+	beq $t5, 0x00000000, instrumentador_moverinstrucciones # Primer nop muevo instrucciones.
 	bne $t6, 32, instrumentador_adds2 # verifico si la instruccion actual es un add.
 	addi $t4, $t4, 1 # si lo es sumo uno al contador.
 	b instrumentador_adds2
-instrumentador_addsendprogram:
-	addi $t1, $t1, -4 # me paro en li $v0, 10
-	addi $t3, $t3, 1
+
+	# Verifico que que valor de v0 cambia.
+instrumentador_li:
+	andi $t7, $t5, 0x000000FF
+	bne $t7, 10, instrumentador_li_nofin
+	li $t7, 1
+	sw $t7, finv0
+	b instrumentador_adds2
+
+instrumentador_li_nofin:
+	li $t7, 0
+	sw $t7, finv0
+	b instrumentador_adds2
+
+instrumentador_syscall:
+	lw $t5, finv0
+	beqz $t5, instrumentador_adds2
+	addi $t1, $t1, -4 # me paro en syscall
 	li $t8, 0x0000040d # $t8 contiene una instruccion.
 	sw $t8, ($t1) # Se sustituye el li $v0, 10 por un break 0x10.
-	addi $t1, $t1, 4 # Actualmente estamos en el syscall.
+	addi $t1, $t1, 4
+	b instrumentador_adds2
+	
 	# Se procede a agregar los breaks ya que se llego a la ultima linea del programa.
 instrumentador_moverinstrucciones:
 	
+	addi $t3, $t3, 1
 	mul $t7, $t4, 4 #$t7 ahora contiene la cantidad de saltos de las instrucciones.
-	addi $t1, $t1, 4 # Actualmente estamos en el siguiente programa.
 	add $t2, $t1, $t7 # $t2 contiene direccion del siguiente programa contando los NOP.
-	addi $t1, $t1, -4 # Actualmente estamos en el final de p $t3.	
+	addi $t2, $t2, -4
+	addi $t1, $t1, -8 # Actualmente estamos en el final de p $t3.	
 	bnez $t7, instrumentador_moverinstrucciones2
 	b instrumentador_adds
 	
@@ -513,7 +603,7 @@ instrumentador_moverinstrucciones2:
 
 	move $t9, $t1 # $t9 se utilizara como la nueva direccion de instruccion.
 	lw $t8, ($t1) # $t8 contiene una instruccion.
-	and $t6, $t8, 0x0000003F # $t6 contiene cod de funct. Mascara para saber si la instruccion es un add.
+	andi $t6, $t8, 0xFC00003F # $t6 contiene cod de funct. Mascara para saber si la instruccion es un add.
 	beq $t6, 32, instrumentador_agregarbreak # verifico si la instruccion actual es un add.
 	add $t9, $t9, $t7
 	sw $t8, ($t9)
@@ -539,6 +629,17 @@ instrumentador_salida:
 
 	li $t1,0 # Almacenamos en $t1 el indice del programa actual
 	lw $t0, NUM_PROGS # Almacenamos en $t0 el numero de programas.
+	
+# Planificacio de Registros:
+# $a0 Registro utilizado para pedir espacio con el syscall de codigo9
+# $t0 Contiene el numero de programas 
+# $t1 Utilizado como contador de iteraciones
+# $t2 Utilizado para movernos en el arreglo de informacion de los programas
+# $t3 Auxiliar para realizar operaciones
+# $t4 Contiene la direccion de inicio de las instrucciones del programa actual
+# $t5 Contiene un 0 para inicializar elementos del arreglo de informacion
+# $t6 Utilizado para contener el desplazamiento en la etiqueta PROGS
+
 inicializar_informacion:
 	lw $a0, NUM_PROGS # Almacenamos en $t0 el numero de programas.
 	mul $a0, $a0, 16 # Por cada programa reservo 12 bytes para informacion. 4 para la direccion actua, 4 para el ambiente,
@@ -546,6 +647,10 @@ inicializar_informacion:
 	li $v0, 9
 	syscall
 	sw $v0, informacion # Almacenamos la direccion de inicio del arreglo de informacion en la etiqueta "informacion".
+	li $a0, 20
+	li $v0, 9
+	syscall
+	sw $v0, pila
 	
 inicializar_ambiente:
 	beq $t1, $t0,correr_programa  # Reviso si inicialice la informacion de todos los programas
@@ -574,59 +679,83 @@ inicializar_ambiente:
 	addi $t1, $t1, 1
 	b inicializar_ambiente
 	
+# Planificacion de Registros:
+# $t1 Almacena la direccion de la instruccion a ejecutar del programa actual
+
 correr_programa:
 	lw $t1, PROGS
-	jr $t1	
+	jr $t1
 	
+# Planificacion de Registros:
+# $t0 Almacena el numero de programas y utiliza esto para calcular desplazamiento en el arreglo de informacion
+# $t1 Utilizado para movernos en el arreglo de informacion
+# $t2 Contiene informacion obtenida del arreglo de informacion que posteriormente sera imprimida
+# $t3 Carga el contenido de finalizado para realizar una comparacion
+# $t8 Registro de iteracion de NUM_PROGS en forma descendiente
+# $t9 Registro utilizado para hacer comparaciones 
+
 fin:
 	lw $t0, NUM_PROGS
-	beqz $t0, fin_fin
+	addi $t0, $t0, -1
+	sw $t0, NUM_PROGS	
+	
+fin_aux:
+	lw $t0, NUM_PROGS
+	move $t8, $t0
+	move $t4, $t0
+	li $t9, -1
+	beq $t8, $t9, fin_fin
 	lw $t1, informacion
 	mul $t0, $t0, 16
 	addi $t0, $t0, 8
-	lw $t2, ($t0)
+	add $t1, $t0, $t1
+	lw $t2, ($t1)
 	sw $t2, finalizado
-	addi $t0, $t0, 4
-	lw $t2, ($t0)
+	addi $t1, $t1, 4
+	lw $t2, ($t1)
 	sw $t2, adds
-	lw $a0, programa
+	la $a0, programa
 	li $v0, 4
 	syscall
-	move $a0, $t0
+	move $a0, $t4
+	addi $a0, $a0, 1
 	li $v0, 1
 	syscall
-	lw $a0, abre
+	la $a0, abre
 	li $v0, 4
 	syscall
 	lw $t3, finalizado
 	beqz $t3, fin_no_finalizado
-	lw $a0, finalizado1
+	la $a0, finalizado1
 	li $v0, 4
 	syscall
-	lw $a0, cierra
+	la $a0, cierra
 	syscall
-	lw $a0, numero
+	la $a0, numero
 	syscall
 	lw $a0, adds
 	li $v0, 1
 	syscall
-	addi $t0, $t0, -1
-	sw $t0, NUM_PROGS
-	b fin
+	la $a0, espacio
+	li $v0, 4
+	syscall
+	addi $t8, $t8, -1
+	sw $t8, NUM_PROGS
+	b fin_aux
 fin_no_finalizado:
-	lw $a0, nofinalizado
+	la $a0, nofinalizado
 	li $v0, 4
 	syscall
-	lw $a0, cierra
+	la $a0, cierra
 	syscall
-	lw $a0, numero
+	la $a0, numero
 	syscall
 	lw $a0, adds
 	li $v0, 1
 	syscall
 	addi $t0, $t0, -1
 	sw $t0, NUM_PROGS
-	b fin
+	b fin_aux
 
 fin_fin:	
 	li $v0 10
